@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Business English Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --navy:#0f172a;--navy2:#1e293b;--gold:#c9a84c;--gold2:#f0c040;
+  --teal:#0d9488;--red:#ef4444;--green:#22c55e;--amber:#f59e0b;
+  --gray1:#94a3b8;--gray2:#64748b;--gray5:#e2e8f0;--gray6:#f8fafc;
+  --ink:#0f172a;--white:#fff;
+  --r:12px;--shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+}
+body{font-family:Outfit,sans-serif;background:#f1f5f9;color:var(--ink);min-height:100vh}
+
+/* ── Login ─────────────────────────────────────────────── */
+#login-screen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--navy) 0%,#1a2744 100%);
+}
+.login-card{
+  background:white;border-radius:20px;padding:40px 36px;
+  max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);
+  text-align:center;
+}
+.login-logo{font-size:40px;margin-bottom:12px}
+.login-title{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--gray2);font-family:Tajawal,sans-serif;margin-bottom:28px}
+.login-input{
+  width:100%;border:1.5px solid var(--gray5);border-radius:10px;
+  padding:12px 14px;font-size:14px;font-family:Outfit,sans-serif;
+  outline:none;transition:border-color .15s;margin-bottom:12px;display:block;
+}
+.login-input:focus{border-color:var(--navy)}
+.login-btn{
+  width:100%;background:var(--navy);color:white;border:none;
+  border-radius:10px;padding:13px;font-size:15px;font-weight:700;
+  cursor:pointer;font-family:Outfit,sans-serif;transition:all .15s;
+}
+.login-btn:hover{background:#1e3a5f}
+.login-err{color:var(--red);font-size:12px;margin-top:8px;display:none}
+
+/* ── App Shell ─────────────────────────────────────────── */
+#app{display:none;min-height:100vh}
+.topbar{
+  position:fixed;top:0;left:0;right:0;height:56px;
+  background:var(--navy);display:flex;align-items:center;
+  padding:0 24px;gap:16px;z-index:100;
+  box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.tb-brand{font-size:14px;font-weight:800;color:var(--gold);flex:1}
+.tb-badge{
+  font-size:11px;background:rgba(201,168,76,.15);
+  color:var(--gold);border:1px solid rgba(201,168,76,.3);
+  border-radius:20px;padding:3px 10px;font-weight:700;
+}
+.tb-logout{
+  background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);
+  border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:Tajawal,Outfit,sans-serif;
+}
+.tb-logout:hover{background:rgba(255,255,255,.15);color:white}
+
+.layout{display:flex;padding-top:56px;min-height:100vh}
+
+/* Sidebar */
+.sidebar{
+  width:220px;background:white;border-right:1px solid var(--gray5);
+  padding:20px 14px;flex-shrink:0;position:fixed;
+  top:56px;left:0;bottom:0;overflow-y:auto;
+}
+.sidebar-section{
+  font-size:9px;font-weight:700;text-transform:uppercase;
+  letter-spacing:1.5px;color:var(--gray2);padding:8px 8px 4px;
+  margin-top:8px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:9px;padding:9px 12px;
+  border-radius:10px;margin-bottom:2px;cursor:pointer;
+  font-size:13px;color:var(--gray2);transition:all .12s;
+  border:none;background:none;width:100%;text-align:left;
+  font-family:Outfit,sans-serif;
+}
+.nav-item:hover{background:var(--gray6);color:var(--ink)}
+.nav-item.active{background:#f0f9ff;color:#0369a1;font-weight:700}
+.nav-item .ni-icon{font-size:15px;flex-shrink:0;width:20px;text-align:center}
+.nav-item.active .ni-icon{}
+
+/* Main */
+.main{margin-left:220px;padding:28px;flex:1}
+.page{display:none}
+.page.active{display:block}
+.page-title{font-size:22px;font-weight:800;color:var(--ink);margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--gray2);font-family:Tajawal,sans-serif;margin-bottom:24px}
+
+/* Stat cards */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:28px}
+.stat-card{
+  background:white;border-radius:var(--r);padding:18px 20px;
+  box-shadow:var(--shadow);border:1px solid var(--gray5);
+}
+.sc-num{font-size:28px;font-weight:900;color:var(--navy);font-family:Outfit,sans-serif}
+.sc-label{font-size:12px;color:var(--gray2);margin-top:4px;font-family:Tajawal,sans-serif}
+.sc-icon{font-size:22px;margin-bottom:8px;display:block}
+
+/* Cards */
+.card{background:white;border-radius:var(--r);border:1px solid var(--gray5);box-shadow:var(--shadow);overflow:hidden}
+.card-head{
+  padding:14px 18px;border-bottom:1px solid var(--gray5);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.card-title{font-size:14px;font-weight:700;color:var(--ink)}
+.card-sub{font-size:11px;color:var(--gray2);font-family:Tajawal,sans-serif;margin-top:2px}
+
+/* Table */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{
+  padding:10px 14px;text-align:left;font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.8px;color:var(--gray2);
+  background:var(--gray6);border-bottom:1px solid var(--gray5);
+}
+td{
+  padding:11px 14px;font-size:13px;color:var(--ink);
+  border-bottom:1px solid var(--gray5);
+}
+tr:last-child td{border:none}
+tr:hover td{background:#fafbfc}
+
+/* Badges */
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;
+}
+.badge-green{background:#dcfce7;color:#15803d}
+.badge-red  {background:#fee2e2;color:#dc2626}
+.badge-amber{background:#fef3c7;color:#b45309}
+.badge-blue {background:#dbeafe;color:#1d4ed8}
+.badge-gray {background:var(--gray6);color:var(--gray2)}
+
+/* Buttons */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;
+  cursor:pointer;border:none;font-family:Outfit,sans-serif;transition:all .15s;
+}
+.btn-primary{background:var(--navy);color:white}
+.btn-primary:hover{background:#1e3a5f}
+.btn-gold{background:var(--gold);color:#0a0802}
+.btn-gold:hover{filter:brightness(1.08)}
+.btn-danger{background:var(--red);color:white}
+.btn-danger:hover{filter:brightness(1.1)}
+.btn-ghost{background:var(--gray6);color:var(--gray2);border:1px solid var(--gray5)}
+.btn-ghost:hover{background:var(--gray5);color:var(--ink)}
+.btn-sm{padding:5px 12px;font-size:12px}
+
+/* Form elements */
+.f-inp{
+  border:1.5px solid var(--gray5);border-radius:8px;padding:9px 12px;
+  font-size:13px;font-family:Outfit,sans-serif;outline:none;
+  transition:border-color .15s;width:100%;
+}
+.f-inp:focus{border-color:var(--navy)}
+.f-label{font-size:12px;font-weight:700;color:var(--gray2);display:block;margin-bottom:5px}
+.f-group{margin-bottom:14px}
+.f-row{display:flex;gap:12px}
+.f-row .f-group{flex:1}
+
+/* Code gen */
+.codegen-box{
+  background:var(--gray6);border:1px solid var(--gray5);
+  border-radius:var(--r);padding:20px;margin-bottom:16px;
+}
+.generated-codes{
+  background:#0f172a;border-radius:10px;padding:14px 16px;
+  font-family:'Courier New',monospace;font-size:12px;color:#86efac;
+  max-height:220px;overflow-y:auto;line-height:1.9;margin-top:14px;
+}
+.copy-btn{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+  color:rgba(255,255,255,.7);border-radius:6px;padding:4px 10px;
+  font-size:11px;cursor:pointer;font-family:Outfit,sans-serif;
+}
+.copy-btn:hover{background:rgba(255,255,255,.15);color:white}
+
+/* Progress bar */
+.pbar-wrap{height:6px;background:var(--gray5);border-radius:999px;overflow:hidden}
+.pbar-fill{height:100%;border-radius:999px;background:var(--teal);transition:width .3s}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:9999;
+  background:var(--navy);color:white;border-radius:10px;
+  padding:12px 20px;font-size:13px;font-weight:600;
+  box-shadow:0 8px 24px rgba(0,0,0,.2);
+  transform:translateY(80px);opacity:0;transition:all .25s;
+}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* Loading */
+.loading{
+  display:flex;align-items:center;justify-content:center;
+  padding:40px;color:var(--gray2);font-size:13px;gap:8px;
+}
+.spin{width:18px;height:18px;border:2px solid var(--gray5);
+  border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Empty state */
+.empty{text-align:center;padding:40px;color:var(--gray2)}
+.empty-icon{font-size:36px;margin-bottom:8px;display:block;opacity:.5}
+
+/* Responsive */
+@media(max-width:768px){
+  .sidebar{width:0;overflow:hidden}
+  .main{margin-left:0}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <span class="login-logo">🔐</span>
+    <div class="login-title">Admin Dashboard</div>
+    <div class="login-sub">Business English Pro · لوحة التحكم</div>
+    <input class="login-input" type="password" id="admin-pw" placeholder="Admin Password" onkeydown="if(event.key==='Enter')checkLogin()">
+    <button class="login-btn" onclick="checkLogin()">دخول · Enter</button>
+    <div class="login-err" id="login-err">كلمة مرور خاطئة · Wrong password</div>
+  </div>
+</div>
+
+<!-- ══ APP ════════════════════════════════════════════════ -->
+<div id="app">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="tb-brand">⚡ BEP Admin</div>
+    <span class="tb-badge" id="provider-badge">Supabase</span>
+    <span class="tb-badge" id="conn-status" style="background:rgba(34,197,94,.15);color:#22c55e;border-color:rgba(34,197,94,.3)">● Connected</span>
+    <button class="tb-logout" onclick="adminLogout()">تسجيل خروج ↩</button>
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-section">Overview</div>
+      <button class="nav-item active" onclick="gotoPage('dashboard',this)">
+        <span class="ni-icon">📊</span> Dashboard
+      </button>
+
+      <div class="sidebar-section">Users</div>
+      <button class="nav-item" onclick="gotoPage('users',this)">
+        <span class="ni-icon">👥</span> All Users
+      </button>
+      <button class="nav-item" onclick="gotoPage('activity',this)">
+        <span class="ni-icon">📈</span> Activity
+      </button>
+      <button class="nav-item" onclick="gotoPage('scores',this)">
+        <span class="ni-icon">🎮</span> Game Scores
+      </button>
+
+      <div class="sidebar-section">Access Codes</div>
+      <button class="nav-item" onclick="gotoPage('codes',this)">
+        <span class="ni-icon">🗝️</span> Manage Codes
+      </button>
+      <button class="nav-item" onclick="gotoPage('codegen',this)">
+        <span class="ni-icon">✨</span> Generate Codes
+      </button>
+
+      <div class="sidebar-section">System</div>
+      <button class="nav-item" onclick="gotoPage('settings',this)">
+        <span class="ni-icon">⚙️</span> Settings
+      </button>
+    </nav>
+
+    <!-- Main -->
+    <main class="main">
+
+      <!-- DASHBOARD -->
+      <div id="page-dashboard" class="page active">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub" style="font-family:Tajawal,sans-serif">نظرة عامة على المنصة</div>
+        <div class="stat-grid" id="stat-grid">
+          <div class="loading"><div class="spin"></div>Loading...</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+          <div class="card">
+            <div class="card-head">
+              <div><div class="card-title">🏆 Top Users by XP</div><div class="card-sub">هذا الأسبوع</div></div>
+              <button class="btn btn-ghost btn-sm" onclick="loadDashboard()">↻</button>
+            </div>
+            <div class="tbl-wrap"><table>
+              <thead><tr><th>#</th><th>User</th><th>XP Weekly</th><th>Streak</th></tr></thead>
+              <tbody id="top-users-body"><tr><td colspan="4" class="loading"><div class="spin"></div></td></tr></tbody>
+            </table></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div><div class="card-title">📊 Code Usage</div><div class="card-sub">نسبة استخدام الكودات</div></div>
+            </div>
+            <div style="padding:20px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px">
+                <span>Activation Rate</span>
+                <span id="code-pct" style="font-weight:700;color:var(--teal)">—</span>
+              </div>
+              <div class="pbar-wrap"><div class="pbar-fill" id="code-pbar" style="width:0%"></div></div>
+              <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--gray2)">
+                <span>Activated: <strong id="codes-used">—</strong></span>
+                <span>Total: <strong id="codes-total">—</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- USERS -->
+      <div id="page-users" class="page">
+        <div class="page-title">All Users</div>
+        <div class="page-sub" style="font-family:Tajawal,sans-serif">إدارة المستخدمين المسجلين</div>
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">👥 Registered Users</div></div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input class="f-inp" id="user-search" placeholder="🔍 Search..." oninput="filterUsers()" style="width:200px;padding:7px 12px">
+              <button class="btn btn-ghost btn-sm" onclick="loadUsers()">↻</button>
+            </div>
+          </div>
+          <div class="tbl-wrap"><table>
+            <thead><tr>
+              <th>Name</th><th>Email</th><th>Field</th>
+              <th>XP</th><th>Streak</th><th>Sessions</th>
+              <th>Last Seen</th><th>Code</th><th></th>
+            </tr></thead>
+            <tbody id="users-body"><tr><td colspan="9"><div class="loading"><div class="spin"></div>Loading...</div></td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- ACTIVITY -->
+      <div id="page-activity" class="page">
+        <div class="page-title">Activity Log</div>
+        <div class="page-sub" style="font-family:Tajawal,sans-serif">سجل نشاط المستخدمين</div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">📈 Recent Activity</div>
+            <button class="btn btn-ghost btn-sm" onclick="loadActivity()">↻</button>
+          </div>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Time</th><th>User</th><th>Type</th><th>Detail</th></tr></thead>
+            <tbody id="activity-body"><tr><td colspan="4"><div class="loading"><div class="spin"></div></div></td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- SCORES -->
+      <div id="page-scores" class="page">
+        <div class="page-title">Game Scores</div>
+        <div class="page-sub" style="font-family:Tajawal,sans-serif">نتائج الألعاب</div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">🎮 All Game Results</div>
+            <div style="display:flex;gap:8px">
+              <select class="f-inp" id="game-filter" onchange="filterScores()" style="width:160px;padding:7px 12px">
+                <option value="">All Games</option>
+                <option value="word_pressure">Word Under Pressure</option>
+                <option value="fix_email">Fix the Email</option>
+                <option value="tone_matcher">Tone Matcher</option>
+                <option value="escape_ceo">CEO Escape Room</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" onclick="loadScores()">↻</button>
+            </div>
+          </div>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Player</th><th>Game</th><th>Score</th><th>%</th><th>Pack</th><th>Date</th></tr></thead>
+            <tbody id="scores-body"><tr><td colspan="6"><div class="loading"><div class="spin"></div></div></td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- CODES -->
+      <div id="page-codes" class="page">
+        <div class="page-title">Access Codes</div>
+        <div class="page-sub" style="font-family:Tajawal,sans-serif">إدارة كودات الدخول</div>
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">🗝️ All Codes</div></div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select class="f-inp" id="code-filter" onchange="filterCodes()" style="width:160px;padding:7px 12px">
+                <option value="">All Codes</option>
+                <option value="active">Active Only</option>
+                <option value="used">Used</option>
+                <option value="revoked">Revoked</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" onclick="loadCodes()">↻</button>
+              <button class="btn btn-primary btn-sm" onclick="exportCodes()">📥 Export CSV</button>
+            </div>
+          </div>
+          <div class="tbl-wrap"><table>
+            <thead><tr>
+              <th>Code</th><th>Batch</th><th>Note</th>
+              <th>Status</th><th>Used By</th><th>Created</th><th></th>
+            </tr></thead>
+            <tbody id="codes-body"><tr><td colspan="7"><div class="loading"><div class="spin"></div></div></td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- CODE GENERATOR -->
+      <div id="page-codegen" class="page">
+        <div class="page-title">Generate Codes</div>
+        <div class="page-sub" style="font-family:Tajawal,sans-serif">إنشاء كودات وصول جديدة للطلاب</div>
+
+        <div class="card" style="padding:24px;margin-bottom:20px">
+          <div class="card-title" style="margin-bottom:18px">⚙️ Code Settings</div>
+          <div class="f-row">
+            <div class="f-group">
+              <label class="f-label">Batch Name (used as prefix)</label>
+              <input class="f-inp" id="batch-name" placeholder="e.g. ALAA or SPRING2025" value="ALAA">
+            </div>
+            <div class="f-group">
+              <label class="f-label">Note / Label</label>
+              <input class="f-inp" id="batch-note" placeholder="e.g. Batch 1 — March students">
+            </div>
+            <div class="f-group" style="max-width:120px">
+              <label class="f-label">Count</label>
+              <input class="f-inp" id="code-count" type="number" value="10" min="1" max="100">
+            </div>
+          </div>
+          <button class="btn btn-gold" onclick="generateCodes()" id="gen-btn">
+            ✨ Generate Codes
+          </button>
+        </div>
+
+        <div class="card" id="gen-result" style="display:none">
+          <div class="card-head">
+            <div>
+              <div class="card-title">✅ Generated Codes</div>
+              <div class="card-sub" id="gen-count-label"></div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" onclick="copyAllCodes()">📋 Copy All</button>
+              <button class="btn btn-ghost btn-sm" onclick="downloadCSV()">📥 Download CSV</button>
+            </div>
+          </div>
+          <div style="padding:16px">
+            <div class="generated-codes" id="generated-codes-display"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="page-settings" class="page">
+        <div class="page-title">Settings</div>
+        <div class="page-sub" style="font-family:Tajawal,sans-serif">إعدادات النظام</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+          <div class="card" style="padding:22px">
+            <div class="card-title" style="margin-bottom:16px">🔌 Database Connection</div>
+            <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray5)">
+                <span style="color:var(--gray2)">Provider</span>
+                <span style="font-weight:700;color:var(--teal)">Supabase</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray5)">
+                <span style="color:var(--gray2)">Project URL</span>
+                <span style="font-size:11px;font-family:monospace;color:var(--ink)">mjxpnttpbmmntmisseoh.supabase.co</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray5)">
+                <span style="color:var(--gray2)">Status</span>
+                <span class="badge badge-green" id="settings-conn-status">● Connected</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0">
+                <span style="color:var(--gray2)">Role</span>
+                <span style="font-weight:700">anon (public)</span>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" style="margin-top:14px;width:100%" onclick="testConnection()">🔁 Test Connection</button>
+          </div>
+          <div class="card" style="padding:22px">
+            <div class="card-title" style="margin-bottom:16px">🗄️ Database Tables</div>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+              <div class="badge badge-green" style="justify-content:flex-start;gap:8px;padding:8px 12px;border-radius:8px">
+                <span>✓</span><span style="font-family:monospace">codes</span><span style="margin-left:auto;opacity:.7">Access codes table</span>
+              </div>
+              <div class="badge badge-green" style="justify-content:flex-start;gap:8px;padding:8px 12px;border-radius:8px">
+                <span>✓</span><span style="font-family:monospace">users</span><span style="margin-left:auto;opacity:.7">Registered users</span>
+              </div>
+              <div class="badge badge-green" style="justify-content:flex-start;gap:8px;padding:8px 12px;border-radius:8px">
+                <span>✓</span><span style="font-family:monospace">game_scores</span><span style="margin-left:auto;opacity:.7">Game results</span>
+              </div>
+              <div class="badge badge-green" style="justify-content:flex-start;gap:8px;padding:8px 12px;border-radius:8px">
+                <span>✓</span><span style="font-family:monospace">activity</span><span style="margin-left:auto;opacity:.7">Event log</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="padding:22px;margin-top:18px">
+          <div class="card-title" style="margin-bottom:4px">⚠️ SQL Setup Instructions</div>
+          <div style="font-size:12px;color:var(--gray2);font-family:Tajawal,sans-serif;margin-bottom:14px">افتح Supabase Dashboard → SQL Editor وشغّل الكود ده مرة واحدة</div>
+          <pre id="schema-display" style="background:var(--navy);color:#86efac;padding:16px;border-radius:10px;font-size:11px;overflow-x:auto;line-height:1.8;max-height:300px;overflow-y:auto"></pre>
+          <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="copySchema()">📋 Copy SQL</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+var SCHEMA_SQL = [
+  '-- Run this once in Supabase SQL Editor',
+  '',
+  'create table if not exists codes (',
+  '  id uuid default gen_random_uuid() primary key,',
+  '  code text unique not null,',
+  '  batch text not null default \'Default\',',
+  '  note text, created_at timestamptz default now(),',
+  '  is_revoked boolean default false,',
+  '  activated boolean default false,',
+  '  used_by uuid, used_at timestamptz',
+  ');',
+  '',
+  'create table if not exists users (',
+  '  id uuid default gen_random_uuid() primary key,',
+  '  name text not null, username text unique not null,',
+  '  email text unique not null, password_hash text not null,',
+  '  field text, code_used text,',
+  '  created_at timestamptz default now(),',
+  '  last_seen timestamptz default now(),',
+  '  total_sessions int default 0,',
+  '  xp int default 0, xp_weekly int default 0,',
+  '  streak_days int default 0, streak_last_date date,',
+  '  streak_freeze int default 1,',
+  '  badges text[] default \'{}\',',
+  '  mastery jsonb default \'{}\',',
+  '  daily_q_last date',
+  ');',
+  '',
+  'create table if not exists game_scores (',
+  '  id uuid default gen_random_uuid() primary key,',
+  '  user_id uuid references users(id) on delete cascade,',
+  '  game text not null, score int default 0,',
+  '  max_score int default 0, pct int default 0,',
+  '  duration_secs int default 0, pack_used text,',
+  '  completed_at timestamptz default now()',
+  ');',
+  '',
+  'create table if not exists activity (',
+  '  id uuid default gen_random_uuid() primary key,',
+  '  user_id uuid references users(id) on delete cascade,',
+  '  timestamp timestamptz default now(),',
+  '  type text not null, detail jsonb default \'{}\'',
+  ');',
+  '',
+  'alter table codes enable row level security;',
+  'alter table users enable row level security;',
+  'alter table game_scores enable row level security;',
+  'alter table activity enable row level security;',
+  '',
+  'create policy "Public read codes" on codes for select using (true);',
+  'create policy "Public update codes" on codes for update using (true);',
+  'create policy "Public insert users" on users for insert with check (true);',
+  'create policy "Public read users" on users for select using (true);',
+  'create policy "Public update users" on users for update using (true);',
+  'create policy "Public insert scores" on game_scores for insert with check (true);',
+  'create policy "Public read scores" on game_scores for select using (true);',
+  'create policy "Public insert activity" on activity for insert with check (true);',
+  'create policy "Public read activity" on activity for select using (true);',
+  '',
+  'insert into codes (code, batch, note)',
+  'values (\'ALAA-2025-PRO\', \'Demo\', \'Fixed demo code\')',
+  'on conflict (code) do nothing;',
+].join('\n');
+const SUPABASE_URL = 'https://mjxpnttpbmmntmisseoh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qeHBudHRwYm1tbnRtaXNzZW9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3ODIxNzAsImV4cCI6MjA5MzM1ODE3MH0.AJM31MK-w_Dmpwo1OfRpE_yQHbVg-RzdadQso3k0RL4';
+const ADMIN_PASSWORD = 'admin2025'; // ← change this
+
+let _allUsers = [], _allCodes = [], _allScores = [], _lastGenerated = [];
+
+// ── Supabase REST helper ──────────────────────────────────
+const SB_HEADERS = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_KEY,
+  'Content-Type': 'application/json'
+};
+async function sbFetch(path, opts={}) {
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+      headers: {...SB_HEADERS, ...(opts.headers||{})}, ...opts
+    });
+    if (res.status === 204) return { data: [], error: null };
+    const json = await res.json();
+    if (!res.ok) return { data: [], error: json.message || JSON.stringify(json) };
+    return { data: Array.isArray(json) ? json : (json ? [json] : []), error: null };
+  } catch(e) { return { data: [], error: e.message }; }
+}
+async function sbSelect(table, filters={}) {
+  let qs = Object.entries(filters).map(([k,v]) => k+'=eq.'+encodeURIComponent(v));
+  const path = table + (qs.length ? '?'+qs.join('&') : '');
+  return sbFetch(path);
+}
+async function sbInsert(table, data) {
+  return sbFetch(table, {
+    method:'POST', headers:{'Prefer':'return=representation'},
+    body: JSON.stringify(data)
+  });
+}
+async function sbUpdate(table, filters, data) {
+  let qs = Object.entries(filters).map(([k,v]) => k+'=eq.'+encodeURIComponent(v));
+  const path = table + '?' + qs.join('&');
+  return sbFetch(path, {
+    method:'PATCH', headers:{'Prefer':'return=representation'},
+    body: JSON.stringify(data)
+  });
+}
+async function sbDelete(table, filters) {
+  let qs = Object.entries(filters).map(([k,v]) => k+'=eq.'+encodeURIComponent(v));
+  return sbFetch(table + '?' + qs.join('&'), { method:'DELETE' });
+}
+
+// ── Init ─────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  if (window.location.protocol === 'file:') {
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0f172a;color:white;font-family:Tajawal,Outfit,sans-serif;text-align:center;padding:40px"><div><div style="font-size:60px;margin-bottom:20px">⚠️</div><h2 style="font-size:24px;margin-bottom:12px">لازم تشغّل من Server</h2><p style="color:rgba(255,255,255,.6);font-size:14px;margin-bottom:24px">الـ Admin مش بيشتغل من file:// — شغّل local server أو ارفع الملفات على hosting</p><div style="background:rgba(255,255,255,.08);border-radius:10px;padding:16px 24px;font-family:monospace;font-size:14px;color:#86efac">python -m http.server 8080</div><p style="color:rgba(255,255,255,.4);font-size:12px;margin-top:12px">ثم افتح: http://localhost:8080/admin.html</p></div></div>';
+    return;
+  }
+  const schemaEl = document.getElementById('schema-display');
+  if (schemaEl) schemaEl.textContent = SCHEMA_SQL;
+  if (sessionStorage.getItem('bep_admin_auth') === 'true') showApp();
+});
+
+// ── Login ─────────────────────────────────────────────────
+function checkLogin() {
+  const pw = document.getElementById('admin-pw').value;
+  if (pw === ADMIN_PASSWORD) {
+    sessionStorage.setItem('bep_admin_auth','true');
+    showApp();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+    document.getElementById('admin-pw').style.borderColor = '#ef4444';
+  }
+}
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  loadDashboard();
+}
+function adminLogout() {
+  sessionStorage.removeItem('bep_admin_auth');
+  location.reload();
+}
+
+// ── Navigation ────────────────────────────────────────────
+function gotoPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  // Load data on first visit
+  if (id === 'dashboard') loadDashboard();
+  if (id === 'users')     loadUsers();
+  if (id === 'codes')     loadCodes();
+  if (id === 'activity')  loadActivity();
+  if (id === 'scores')    loadScores();
+}
+
+// ── Dashboard ─────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const [{ data: users }, { data: codes }, { data: scores }] = await Promise.all([
+      sbSelect('users'),
+      sbSelect('codes'),
+      sbSelect('game_scores'),
+    ]);
+    const today = new Date().toISOString().split('T')[0];
+    const stats = {
+      '👥 Total Users':     (users||[]).length,
+      '🟢 Active Today':    (users||[]).filter(u => u.last_seen?.startsWith(today)).length,
+      '🗝️ Codes Total':    (codes||[]).length,
+      '✅ Codes Used':      (codes||[]).filter(c => c.activated).length,
+      '🎮 Games Played':    (scores||[]).length,
+      '⚡ Total XP':        (users||[]).reduce((s,u) => s+(u.xp||0), 0).toLocaleString(),
+    };
+    document.getElementById('stat-grid').innerHTML = Object.entries(stats).map(([k,v]) => `
+      <div class="stat-card">
+        <span class="sc-icon">${k.split(' ')[0]}</span>
+        <div class="sc-num">${v}</div>
+        <div class="sc-label">${k.split(' ').slice(1).join(' ')}</div>
+      </div>`).join('');
+
+    // Top users
+    const sorted = [...(users||[])].sort((a,b) => (b.xp_weekly||0)-(a.xp_weekly||0)).slice(0,7);
+    document.getElementById('top-users-body').innerHTML = sorted.length
+      ? sorted.map((u,i) => `<tr>
+          <td><strong>${i+1}</strong></td>
+          <td>${u.name}<br><span style="font-size:11px;color:var(--gray2)">${u.email}</span></td>
+          <td><strong style="color:var(--teal)">${(u.xp_weekly||0).toLocaleString()}</strong></td>
+          <td>🔥 ${u.streak_days||0}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="4"><div class="empty"><span class="empty-icon">👥</span>No users yet</div></td></tr>';
+
+    // Code usage bar
+    const total = (codes||[]).length, used = (codes||[]).filter(c=>c.activated).length;
+    const pct = total > 0 ? Math.round(used/total*100) : 0;
+    document.getElementById('code-pct').textContent = pct + '%';
+    document.getElementById('code-pbar').style.width = pct + '%';
+    document.getElementById('codes-used').textContent = used;
+    document.getElementById('codes-total').textContent = total;
+
+    // Connection status
+    document.getElementById('conn-status').innerHTML = '● Connected';
+    document.getElementById('settings-conn-status').className = 'badge badge-green';
+    document.getElementById('settings-conn-status').textContent = '● Connected';
+  } catch(e) {
+    document.getElementById('stat-grid').innerHTML = `<div style="color:var(--red);padding:20px">Error: ${e.message}</div>`;
+  }
+}
+
+// ── Users ─────────────────────────────────────────────────
+async function loadUsers() {
+  document.getElementById('users-body').innerHTML = '<tr><td colspan="9"><div class="loading"><div class="spin"></div>Loading...</div></td></tr>';
+  const { data, error } = await sbFetch('users?order=created_at.desc');
+  _allUsers = data || [];
+  renderUsers(_allUsers);
+}
+function renderUsers(users) {
+  if (!users.length) {
+    document.getElementById('users-body').innerHTML = '<tr><td colspan="9"><div class="empty"><span class="empty-icon">👥</span>No users yet</div></td></tr>';
+    return;
+  }
+  const fieldIcons = {sales:'💼',hr:'👥',tech:'💻',finance:'💰',marketing:'📣',cs:'🎯'};
+  document.getElementById('users-body').innerHTML = users.map(u => `
+    <tr>
+      <td><strong>${u.name}</strong><br><span style="font-size:11px;color:var(--gray2)">${u.username}</span></td>
+      <td style="font-size:12px">${u.email}</td>
+      <td><span style="font-size:13px">${fieldIcons[u.field]||'🌐'} ${u.field||'—'}</span></td>
+      <td><strong style="color:var(--teal)">${(u.xp||0).toLocaleString()}</strong></td>
+      <td>🔥 ${u.streak_days||0}</td>
+      <td>${u.total_sessions||0}</td>
+      <td style="font-size:11px;color:var(--gray2)">${u.last_seen ? new Date(u.last_seen).toLocaleDateString('ar-EG') : '—'}</td>
+      <td><code style="font-size:11px;background:var(--gray6);padding:2px 6px;border-radius:4px">${u.code_used||'—'}</code></td>
+      <td>
+        <button class="btn btn-danger btn-sm" onclick="confirmDeleteUser('${u.id}','${u.name}')">🗑</button>
+      </td>
+    </tr>`).join('');
+}
+function filterUsers() {
+  const q = document.getElementById('user-search').value.toLowerCase();
+  renderUsers(_allUsers.filter(u =>
+    u.name?.toLowerCase().includes(q) ||
+    u.email?.toLowerCase().includes(q) ||
+    u.username?.toLowerCase().includes(q)
+  ));
+}
+async function confirmDeleteUser(id, name) {
+  if (!confirm(`Delete user "${name}"? This cannot be undone.`)) return;
+  await sbDelete('users', { id });
+  toast('User deleted');
+  loadUsers();
+}
+
+// ── Activity ──────────────────────────────────────────────
+async function loadActivity() {
+  document.getElementById('activity-body').innerHTML = '<tr><td colspan="4"><div class="loading"><div class="spin"></div></div></td></tr>';
+  const { data } = await sbFetch('activity?order=timestamp.desc&limit=100');
+  const rows = data || [];
+  const typeColors = { xp_earned:'blue', game_completed:'green', badge_earned:'amber', template_copied:'gray' };
+  document.getElementById('activity-body').innerHTML = rows.length
+    ? rows.map(r => `<tr>
+        <td style="font-size:11px;color:var(--gray2)">${new Date(r.timestamp).toLocaleString('ar-EG')}</td>
+        <td>${r.users?.name || r.user_id?.slice(0,8)+'...'}</td>
+        <td><span class="badge badge-${typeColors[r.type]||'gray'}">${r.type}</span></td>
+        <td style="font-size:11px;font-family:monospace;color:var(--gray2)">${JSON.stringify(r.detail||{})}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="4"><div class="empty"><span class="empty-icon">📈</span>No activity yet</div></td></tr>';
+}
+
+// ── Scores ────────────────────────────────────────────────
+async function loadScores() {
+  document.getElementById('scores-body').innerHTML = '<tr><td colspan="6"><div class="loading"><div class="spin"></div></div></td></tr>';
+  const { data } = await sbFetch('game_scores?order=completed_at.desc&limit=200');
+  _allScores = data || [];
+  renderScores(_allScores);
+}
+function renderScores(scores) {
+  const gameLabels = { word_pressure:'🔤 Word Pressure', fix_email:'📝 Fix Email', tone_matcher:'🎯 Tone Matcher', escape_ceo:'💼 CEO Escape' };
+  document.getElementById('scores-body').innerHTML = scores.length
+    ? scores.map(s => `<tr>
+        <td>${s.users?.name || '—'}</td>
+        <td>${gameLabels[s.game]||s.game}</td>
+        <td><strong>${s.score?.toLocaleString()}</strong></td>
+        <td><span class="badge ${s.pct>=80?'badge-green':s.pct>=50?'badge-amber':'badge-red'}">${s.pct}%</span></td>
+        <td style="font-size:11px">${s.pack_used||'—'}</td>
+        <td style="font-size:11px;color:var(--gray2)">${new Date(s.completed_at).toLocaleDateString('ar-EG')}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="6"><div class="empty"><span class="empty-icon">🎮</span>No scores yet</div></td></tr>';
+}
+function filterScores() {
+  const g = document.getElementById('game-filter').value;
+  renderScores(g ? _allScores.filter(s => s.game === g) : _allScores);
+}
+
+// ── Codes ─────────────────────────────────────────────────
+async function loadCodes() {
+  document.getElementById('codes-body').innerHTML = '<tr><td colspan="7"><div class="loading"><div class="spin"></div></div></td></tr>';
+  const { data } = await sbFetch('codes?order=created_at.desc');
+  _allCodes = data || [];
+  renderCodes(_allCodes);
+}
+function renderCodes(codes) {
+  document.getElementById('codes-body').innerHTML = codes.length
+    ? codes.map(c => `<tr>
+        <td><code style="font-family:monospace;font-size:12px;font-weight:700;color:var(--navy)">${c.code}</code></td>
+        <td><span class="badge badge-blue">${c.batch}</span></td>
+        <td style="font-size:11px;color:var(--gray2)">${c.note||'—'}</td>
+        <td>${c.is_revoked
+              ? '<span class="badge badge-red">Revoked</span>'
+              : c.activated
+                ? '<span class="badge badge-green">✓ Used</span>'
+                : '<span class="badge badge-gray">Available</span>'}</td>
+        <td style="font-size:11px;color:var(--gray2)">${c.used_by ? c.used_by.slice(0,8)+'...' : '—'}</td>
+        <td style="font-size:11px;color:var(--gray2)">${new Date(c.created_at).toLocaleDateString('ar-EG')}</td>
+        <td>
+          ${!c.is_revoked && !c.activated
+            ? `<button class="btn btn-danger btn-sm" onclick="revokeCode('${c.id}')">Revoke</button>`
+            : ''}
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="7"><div class="empty"><span class="empty-icon">🗝️</span>No codes yet — generate some!</div></td></tr>';
+}
+function filterCodes() {
+  const f = document.getElementById('code-filter').value;
+  const filtered = !f ? _allCodes :
+    f === 'active'  ? _allCodes.filter(c => !c.activated && !c.is_revoked) :
+    f === 'used'    ? _allCodes.filter(c => c.activated) :
+    f === 'revoked' ? _allCodes.filter(c => c.is_revoked) : _allCodes;
+  renderCodes(filtered);
+}
+async function revokeCode(id) {
+  if (!confirm('Revoke this code?')) return;
+  await sbUpdate('codes', { id }, { is_revoked: true });
+  toast('Code revoked');
+  loadCodes();
+}
+function exportCodes() {
+  const header = 'Code,Batch,Note,Status,Used By,Created\n';
+  const rows = _allCodes.map(c =>
+    c.code + ',' + c.batch + ',"' + (c.note||'') + '",' +
+    (c.is_revoked?'Revoked':c.activated?'Used':'Available') + ',' +
+    (c.used_by||'') + ',' + c.created_at
+  ).join('\n');
+  const csv = header + rows;
+  downloadText(csv, 'bep-codes.csv');
+  toast('CSV exported ✓');
+}
+
+// ── Code Generator ────────────────────────────────────────
+async function generateCodes() {
+  const batch = document.getElementById('batch-name').value.trim() || 'ALAA';
+  const note  = document.getElementById('batch-note').value.trim();
+  const count = Math.min(parseInt(document.getElementById('code-count').value) || 10, 100);
+  const btn = document.getElementById('gen-btn');
+  btn.disabled = true; btn.textContent = '⏳ Generating...';
+
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const codes = [];
+  for (let i = 0; i < count; i++) {
+    let code = batch.toUpperCase().replace(/\s+/g,'-') + '-';
+    for (let j = 0; j < 4; j++) code += chars[Math.floor(Math.random()*chars.length)];
+    code += '-';
+    for (let j = 0; j < 4; j++) code += chars[Math.floor(Math.random()*chars.length)];
+    codes.push({ code, batch, note: note||'', is_revoked: false, activated: false, created_at: new Date().toISOString() });
+  }
+
+  // Insert all codes into Supabase
+  const { data, error } = await sbInsert('codes', codes);
+  btn.disabled = false; btn.textContent = '✨ Generate Codes';
+
+  if (error) { toast('Error: ' + error.message, true); return; }
+  _lastGenerated = data || codes;
+
+  document.getElementById('gen-result').style.display = 'block';
+  document.getElementById('gen-count-label').textContent = count + ' codes saved to Supabase';
+  document.getElementById('generated-codes-display').innerHTML =
+    _lastGenerated.map(c => `<div>${c.code}</div>`).join('');
+  toast(`${count} codes generated ✓`);
+}
+
+function copyAllCodes() {
+  const text = _lastGenerated.map(c => c.code).join('\n');
+  navigator.clipboard.writeText(text).then(() => toast('Copied!'));
+}
+function downloadCSV() {
+  const header = 'Code,Batch,Note\n';
+  const rows = _lastGenerated.map(c => c.code + ',' + c.batch + ',"' + (c.note||'') + '"').join('\n');
+  const csv = header + rows;
+  downloadText(csv, 'bep-codes-' + Date.now() + '.csv');
+  toast('CSV downloaded ✓');
+}
+
+// ── Connection Test ───────────────────────────────────────
+async function testConnection() {
+  const { data, error } = await sbFetch('users?limit=1');
+  if (error) {
+    toast('Connection failed: ' + error, true);
+    document.getElementById('settings-conn-status').className = 'badge badge-red';
+    document.getElementById('settings-conn-status').textContent = '● Error';
+  } else {
+    toast('✓ Connection successful!');
+    document.getElementById('settings-conn-status').className = 'badge badge-green';
+    document.getElementById('settings-conn-status').textContent = '● Connected';
+  }
+}
+
+// ── Utilities ─────────────────────────────────────────────
+function toast(msg, isError=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = isError ? '#dc2626' : '#0f172a';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+function downloadText(text, filename) {
+  const a = document.createElement('a');
+  a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+  a.download = filename;
+  a.click();
+}
+function copySchema() {
+  navigator.clipboard.writeText(SCHEMA_SQL).then(() => toast('SQL copied!'));
+}
+
+// ── SQL Schema (for display in settings) ─────────────────
+
+</script>
+
+
+</body>
+</html>
