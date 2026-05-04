@@ -1427,11 +1427,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 const DB = (() => {
 
-  // Auto-detect: file:// = local mode, http(s):// = Supabase
-  const PROVIDER = (typeof window !== 'undefined' && window.location.protocol === 'file:')
-    ? 'local'
-    : 'supabase';
-  if (PROVIDER === 'local') console.log('[BEP] file:// detected — using localStorage mode');
+  const PROVIDER = 'supabase'; // 'supabase' | 'local'
   const PREFIX   = 'bep_';
 
   // ── Local helpers ─────────────────────────────────────
@@ -1452,8 +1448,8 @@ const DB = (() => {
   async function _sbFetch(path, options = {}) {
     try {
       const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
-        headers: { ..._sbHeaders, ...(options.headers||{}) },
-        ...options
+        ...options,
+        headers: { ..._sbHeaders, ...(options.headers||{}) }
       });
       if (res.status === 204) return { data: null, error: null };
       const json = await res.json();
@@ -1620,66 +1616,35 @@ const DB = (() => {
   }
 
   async function loginUser(email, password) {
-    // Try Supabase first, fallback to localStorage if it fails
-    let user = null;
-    let fromSupabase = false;
+    const { data } = await _query('users', 'select', { eq: { email } });
+    const rows = Array.isArray(data) ? data : [];
+    const user = rows.find(u => u.password_hash === btoa(password));
+    if (!user) return { success: false, reason: 'invalid_credentials' };
 
-    if (PROVIDER === 'supabase') {
-      try {
-        const { data, error } = await _query('users', 'select', { eq: { email } });
-        if (!error) {
-          const rows = Array.isArray(data) ? data : [];
-          const found = rows.find(u => u.password_hash === btoa(password));
-          if (found) { user = found; fromSupabase = true; }
-        }
-      } catch(e) { console.warn('[BEP] Supabase login failed, trying local', e.message); }
-    }
+    // Sync localStorage data up to Supabase if it's newer
+    const local = _get('current_user');
+    if (local && local.email === email) {
+      const mergeFields = {};
+      if ((local.xp||0)          > (user.xp||0))          { mergeFields.xp           = local.xp; }
+      if ((local.xp_weekly||0)   > (user.xp_weekly||0))   { mergeFields.xp_weekly    = local.xp_weekly; }
+      if ((local.streak_days||0) > (user.streak_days||0)) { mergeFields.streak_days  = local.streak_days; }
+      if (local.streak_last_date)                          { mergeFields.streak_last_date = local.streak_last_date; }
+      if ((local.badges||[]).length > (user.badges||[]).length) { mergeFields.badges  = local.badges; }
+      if (Object.keys(local.mastery||{}).length > 0)       { mergeFields.mastery      = local.mastery; }
 
-    // Fallback: check localStorage
-    if (!user) {
-      const localUsers = _get('users') || [];
-      user = localUsers.find(u => u.email === email && u.password_hash === btoa(password));
-      if (!user) return { success: false, reason: 'invalid_credentials' };
-    }
-
-    // If found in Supabase, sync local data up if it has more XP
-    if (fromSupabase) {
-      const local = _get('current_user');
-      if (local && local.email === email) {
-        const merge = {};
-        if ((local.xp||0)          > (user.xp||0))           merge.xp               = local.xp;
-        if ((local.xp_weekly||0)   > (user.xp_weekly||0))    merge.xp_weekly        = local.xp_weekly;
-        if ((local.streak_days||0) > (user.streak_days||0))  merge.streak_days      = local.streak_days;
-        if (local.streak_last_date)                           merge.streak_last_date = local.streak_last_date;
-        if ((local.badges||[]).length > (user.badges||[]).length) merge.badges       = local.badges;
-        if (Object.keys(local.mastery||{}).length > 0)        merge.mastery          = local.mastery;
-        if (Object.keys(merge).length > 0) {
-          Object.assign(user, merge);
-          try {
-            await _query('users', 'update', { eq: { id: user.id }, data: merge });
-            console.log('[BEP] Local XP synced to Supabase:', merge.xp || user.xp);
-          } catch(e) { console.warn('[BEP] Sync failed:', e.message); }
-        }
+      if (Object.keys(mergeFields).length > 0) {
+        Object.assign(user, mergeFields);
+        await _query('users', 'update', { eq: { id: user.id }, data: mergeFields });
+        console.log('[BEP] Synced local → Supabase', mergeFields);
       }
     }
 
-    // Update last_seen + sessions
     user.last_seen = _now();
-    user.total_sessions = (user.total_sessions || 0) + 1;
-    if (fromSupabase) {
-      try {
-        await _query('users', 'update', {
-          eq:   { id: user.id },
-          data: { last_seen: user.last_seen, total_sessions: user.total_sessions }
-        });
-      } catch(e) {}
-    } else {
-      // Update local storage users list
-      const users = _get('users') || [];
-      const idx = users.findIndex(u => u.id === user.id);
-      if (idx >= 0) { users[idx] = {...users[idx], last_seen: user.last_seen, total_sessions: user.total_sessions}; _set('users', users); }
-    }
-
+    user.total_sessions = (user.total_sessions||0) + 1;
+    await _query('users', 'update', {
+      eq:   { id: user.id },
+      data: { last_seen: user.last_seen, total_sessions: user.total_sessions }
+    });
     _set('current_user', user);
     return { success: true, user };
   }
@@ -3733,69 +3698,7 @@ function showToast(msg,dur=2500){const t=document.getElementById('global-toast')
   const token=JSON.parse(localStorage.getItem('bep_session_token')||'null');
   if(token&&new Date(token.expires)>new Date()){
     const user=DB.getCurrentUser();
-    if(user){
-      // Validate UUID — local demo users have non-UUID ids like 'demo-user-001'
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id||'');
-      if(!isUUID){
-        // Try to upgrade: find this user in Supabase by email, get real UUID
-        console.log('[BEP] Non-UUID local user, upgrading session...');
-        (async()=>{
-          try {
-            const {data} = await DB._query('users','select',{eq:{email:user.email}});
-            const rows = Array.isArray(data)?data:[];
-            const remote = rows[0];
-            if(remote){
-              // Merge local data into Supabase user
-              const merge={};
-              if((user.xp||0)>(remote.xp||0))         merge.xp          = user.xp;
-              if((user.xp_weekly||0)>(remote.xp_weekly||0)) merge.xp_weekly = user.xp_weekly;
-              if((user.streak_days||0)>(remote.streak_days||0)) merge.streak_days = user.streak_days;
-              if(user.streak_last_date) merge.streak_last_date = user.streak_last_date;
-              if((user.badges||[]).length>(remote.badges||[]).length) merge.badges = user.badges;
-              if(Object.keys(merge).length>0){
-                await DB._query('users','update',{eq:{id:remote.id},data:merge});
-              }
-              const upgraded = {...remote,...merge};
-              DB.setCurrentUser(upgraded);
-              window.CURRENT_USER = upgraded;
-              console.log('[BEP] Session upgraded with Supabase UUID, XP='+upgraded.xp);
-              if(typeof renderDashboard==='function') renderDashboard(upgraded);
-            } else {
-              // User not in Supabase — keep local session as-is
-              console.log('[BEP] User not in Supabase, using local session');
-            }
-          } catch(e){ console.warn('[BEP] Upgrade failed, using local session'); }
-        })();
-        // Don't redirect — let them keep using the app with local data
-      }
-      window.CURRENT_USER=user;
-      enterApp(user);
-      // Background sync: push local data to Supabase if newer
-      (async function syncToSupabase(){
-        try {
-          const { data } = await DB._query('users','select',{eq:{email:user.email}});
-          const rows = Array.isArray(data)?data:[];
-          const remote = rows[0];
-          if(!remote){ console.warn('[BEP] User not found in Supabase'); return; }
-          const merge={};
-          if((user.xp||0)          > (remote.xp||0))          merge.xp           = user.xp;
-          if((user.xp_weekly||0)   > (remote.xp_weekly||0))   merge.xp_weekly    = user.xp_weekly;
-          if((user.streak_days||0) > (remote.streak_days||0)) merge.streak_days  = user.streak_days;
-          if(user.streak_last_date)                            merge.streak_last_date = user.streak_last_date;
-          if((user.badges||[]).length > (remote.badges||[]).length) merge.badges  = user.badges;
-          if(Object.keys(user.mastery||{}).length > 0)         merge.mastery      = user.mastery;
-          merge.last_seen      = new Date().toISOString();
-          merge.total_sessions = (remote.total_sessions||0)+1;
-          await DB._query('users','update',{eq:{id:remote.id},data:merge});
-          // Update local with real Supabase id
-          const merged={...user,...merge,id:remote.id};
-          DB.setCurrentUser(merged);
-          window.CURRENT_USER=merged;
-          console.log('[BEP] Synced to Supabase OK, XP='+merged.xp);
-        } catch(e){ console.warn('[BEP] Sync error',e.message); }
-      })();
-      return;
-    }
+    if(user){window.CURRENT_USER=user;enterApp(user);return;}
   }
   goScreen('login');
 })();
