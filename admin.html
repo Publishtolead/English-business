@@ -592,7 +592,8 @@ const SB_HEADERS = {
 async function sbFetch(path, opts={}) {
   try {
     const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
-      headers: {...SB_HEADERS, ...(opts.headers||{})}, ...opts
+      ...opts,
+      headers: {...SB_HEADERS, ...(opts.headers||{})}
     });
     if (res.status === 204) return { data: [], error: null };
     const json = await res.json();
