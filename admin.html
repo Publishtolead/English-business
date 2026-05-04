@@ -768,32 +768,40 @@ async function confirmDeleteUser(id, name) {
 
 // ── Activity ──────────────────────────────────────────────
 async function loadActivity() {
-  document.getElementById('activity-body').innerHTML = '<tr><td colspan="4"><div class="loading"><div class="spin"></div></div></td></tr>';
-  const { data } = await sbFetch('activity?order=timestamp.desc&limit=100');
-  const rows = data || [];
+  document.getElementById('activity-body').innerHTML = '<tr><td colspan="4"><div class="loading"><div class="spin"></div>Loading...</div></td></tr>';
+  const [{ data: acts }, { data: usrs }] = await Promise.all([
+    sbFetch('activity?order=timestamp.desc&limit=100'),
+    sbFetch('users?select=id,name,email')
+  ]);
+  const rows = acts || [];
+  const usersMap = {};
+  (usrs||[]).forEach(u => { usersMap[u.id] = u.name || u.email; });
   const typeColors = { xp_earned:'blue', game_completed:'green', badge_earned:'amber', template_copied:'gray' };
   document.getElementById('activity-body').innerHTML = rows.length
-    ? rows.map(r => `<tr>
-        <td style="font-size:11px;color:var(--gray2)">${new Date(r.timestamp).toLocaleString('ar-EG')}</td>
-        <td>${r.users?.name || r.user_id?.slice(0,8)+'...'}</td>
-        <td><span class="badge badge-${typeColors[r.type]||'gray'}">${r.type}</span></td>
-        <td style="font-size:11px;font-family:monospace;color:var(--gray2)">${JSON.stringify(r.detail||{})}</td>
-      </tr>`).join('')
+    ? rows.map(r => '<tr>' +
+        '<td style="font-size:11px;color:var(--gray2)">' + new Date(r.timestamp).toLocaleString('ar-EG') + '</td>' +
+        '<td><strong>' + (usersMap[r.user_id] || 'Unknown') + '</strong><br><span style="font-size:10px;color:var(--gray2)">' + (r.user_id||'').slice(0,8) + '...</span></td>' +
+        '<td><span class="badge badge-' + (typeColors[r.type]||'gray') + '">' + r.type + '</span></td>' +
+        '<td style="font-size:11px;font-family:monospace;color:var(--gray2)">' + JSON.stringify(r.detail||{}) + '</td>' +
+        '</tr>').join('')
     : '<tr><td colspan="4"><div class="empty"><span class="empty-icon">📈</span>No activity yet</div></td></tr>';
 }
-
-// ── Scores ────────────────────────────────────────────────
 async function loadScores() {
   document.getElementById('scores-body').innerHTML = '<tr><td colspan="6"><div class="loading"><div class="spin"></div></div></td></tr>';
-  const { data } = await sbFetch('game_scores?order=completed_at.desc&limit=200');
-  _allScores = data || [];
+  const [{ data: scores }, { data: usrs }] = await Promise.all([
+    sbFetch('game_scores?order=completed_at.desc&limit=200'),
+    sbFetch('users?select=id,name,email')
+  ]);
+  const usersMap = {};
+  (usrs||[]).forEach(u => { usersMap[u.id] = u.name || u.email; });
+  _allScores = (scores||[]).map(s => ({...s, _userName: usersMap[s.user_id] || '—'}));
   renderScores(_allScores);
 }
 function renderScores(scores) {
   const gameLabels = { word_pressure:'🔤 Word Pressure', fix_email:'📝 Fix Email', tone_matcher:'🎯 Tone Matcher', escape_ceo:'💼 CEO Escape' };
   document.getElementById('scores-body').innerHTML = scores.length
     ? scores.map(s => `<tr>
-        <td>${s.users?.name || '—'}</td>
+        <td>${s._userName || '—'}</td>
         <td>${gameLabels[s.game]||s.game}</td>
         <td><strong>${s.score?.toLocaleString()}</strong></td>
         <td><span class="badge ${s.pct>=80?'badge-green':s.pct>=50?'badge-amber':'badge-red'}">${s.pct}%</span></td>
