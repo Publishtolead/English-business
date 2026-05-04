@@ -1864,35 +1864,68 @@ const DB = (() => {
   }
 
   async function loginUser(email, password) {
-    const { data } = await _query('users', 'select', { eq: { email } });
-    const rows = Array.isArray(data) ? data : [];
-    const user = rows.find(u => u.password_hash === btoa(password));
-    if (!user) return { success: false, reason: 'invalid_credentials' };
+    const pwHash = btoa(password);
+    console.log('[BEP] Login attempt for:', email);
 
-    // Sync localStorage data up to Supabase if it's newer
-    const local = _get('current_user');
-    if (local && local.email === email) {
-      const mergeFields = {};
-      if ((local.xp||0)          > (user.xp||0))          { mergeFields.xp           = local.xp; }
-      if ((local.xp_weekly||0)   > (user.xp_weekly||0))   { mergeFields.xp_weekly    = local.xp_weekly; }
-      if ((local.streak_days||0) > (user.streak_days||0)) { mergeFields.streak_days  = local.streak_days; }
-      if (local.streak_last_date)                          { mergeFields.streak_last_date = local.streak_last_date; }
-      if ((local.badges||[]).length > (user.badges||[]).length) { mergeFields.badges  = local.badges; }
-      if (Object.keys(local.mastery||{}).length > 0)       { mergeFields.mastery      = local.mastery; }
+    let user = null;
+    let fromSupabase = false;
 
-      if (Object.keys(mergeFields).length > 0) {
-        Object.assign(user, mergeFields);
-        await _query('users', 'update', { eq: { id: user.id }, data: mergeFields });
-        console.log('[BEP] Synced local → Supabase', mergeFields);
+    // 1. Try Supabase
+    if (PROVIDER === 'supabase') {
+      try {
+        const { data, error } = await _query('users', 'select', { eq: { email } });
+        console.log('[BEP] Supabase rows:', (data||[]).length, 'error:', error);
+        if (!error) {
+          const rows = Array.isArray(data) ? data : [];
+          const found = rows.find(u => u.password_hash === pwHash);
+          if (found) { user = found; fromSupabase = true; console.log('[BEP] Supabase login OK'); }
+          else if (rows.length > 0) { console.warn('[BEP] Wrong password. DB hash:', rows[0].password_hash, 'Expected:', pwHash); }
+        }
+      } catch(e) { console.warn('[BEP] Supabase error:', e.message); }
+    }
+
+    // 2. Fallback: localStorage
+    if (!user) {
+      const localUsers = _get('users') || [];
+      user = localUsers.find(u => u.email === email && u.password_hash === pwHash);
+      if (user) console.log('[BEP] localStorage login OK');
+    }
+
+    if (!user) {
+      console.warn('[BEP] Login failed - no match found');
+      return { success: false, reason: 'invalid_credentials' };
+    }
+
+    // 3. Sync local XP to Supabase if higher
+    if (fromSupabase) {
+      const local = _get('current_user');
+      if (local && local.email === email) {
+        const merge = {};
+        if ((local.xp||0)          > (user.xp||0))          merge.xp               = local.xp;
+        if ((local.xp_weekly||0)   > (user.xp_weekly||0))   merge.xp_weekly        = local.xp_weekly;
+        if ((local.streak_days||0) > (user.streak_days||0)) merge.streak_days      = local.streak_days;
+        if (local.streak_last_date)                          merge.streak_last_date = local.streak_last_date;
+        if ((local.badges||[]).length > (user.badges||[]).length) merge.badges     = local.badges;
+        if (Object.keys(local.mastery||{}).length > 0)       merge.mastery          = local.mastery;
+        if (Object.keys(merge).length > 0) {
+          Object.assign(user, merge);
+          try { await _query('users', 'update', { eq: { id: user.id }, data: merge }); } catch(e) {}
+          console.log('[BEP] Synced local XP to Supabase:', merge);
+        }
       }
     }
 
+    // 4. Update last_seen
     user.last_seen = _now();
     user.total_sessions = (user.total_sessions||0) + 1;
-    await _query('users', 'update', {
-      eq:   { id: user.id },
-      data: { last_seen: user.last_seen, total_sessions: user.total_sessions }
-    });
+    if (fromSupabase) {
+      try { await _query('users', 'update', { eq: { id: user.id }, data: { last_seen: user.last_seen, total_sessions: user.total_sessions }}); } catch(e) {}
+    } else {
+      const users = _get('users') || [];
+      const idx = users.findIndex(u => u.id === user.id);
+      if (idx >= 0) { users[idx] = {...users[idx], last_seen: user.last_seen, total_sessions: user.total_sessions}; _set('users', users); }
+    }
+
     _set('current_user', user);
     return { success: true, user };
   }
@@ -2237,12 +2270,12 @@ const Auth = (() => {
   // ── Public: logout ─────────────────────────────────────────
   function logout() {
     if (window.CURRENT_USER) {
-      DB.logActivity(window.CURRENT_USER.id, 'logout', {});
+      DB.logActivity(window.CURRENT_USER.id, 'logout', {}).catch(()=>{});
     }
     _clearToken();
     DB.logout();
     window.CURRENT_USER = null;
-    window.location.href = 'index.html';
+    // Stay on same page, go to login screen
   }
 
   // ── Public: get current user (no redirect) ─────────────────
@@ -4302,7 +4335,7 @@ Nav.renderWithActive = function(activeId) {
       <button class="nav-item ${activeId==='games'?'active':''}" onclick="goScreen('games')"><span>🎮</span><span>جميع الألعاب</span></button>
     </div>
     <div class="sidebar-bottom">
-      <button class="nav-item" onclick="Auth.logout();goScreen('login')" style="color:rgba(255,255,255,.4)"><span>↩️</span><span>خروج · Logout</span></button>
+      <button class="nav-item" onclick="doLogout()" style="color:rgba(255,255,255,.4)"><span>↩️</span><span>خروج · Logout</span></button>
     </div>
   </nav>`;
   const existing=document.getElementById('sidebar');
@@ -4326,6 +4359,11 @@ Auth.logout=function(){
 };
 
 // ══ HELPERS ══════════════════════════════════════════════════
+function doLogout() {
+  Auth.logout();
+  goScreen('login');
+  authTab('login');
+}
 function togPw(id,btn){const inp=document.getElementById(id);inp.type=inp.type==='text'?'password':'text';btn.textContent=inp.type==='text'?'🙈':'👁';}
 function showFErr(id,msg){const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.classList.add('show');}
 function showAlert(type,msg){const el=document.getElementById('auth-alert');el.textContent=msg;el.className=`alert alert-${type} show`;}
